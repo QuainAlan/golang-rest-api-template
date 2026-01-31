@@ -22,6 +22,19 @@ type BookRepository interface {
 	DeleteBook(c *gin.Context)
 }
 
+func parseIDParam(c *gin.Context) (uint, bool) {
+	if c == nil {
+		return 0, false
+	}
+	value := c.Param("id")
+	id, err := strconv.ParseUint(value, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id format"})
+		return 0, false
+	}
+	return uint(id), true
+}
+
 // bookRepository holds shared resources like database and Redis client
 type bookRepository struct {
 	DB          database.Database
@@ -171,7 +184,12 @@ func (r *bookRepository) CreateBook(c *gin.Context) {
 func (r *bookRepository) FindBook(c *gin.Context) {
 	var book models.Book
 
-	if err := r.DB.Where("id = ?", c.Param("id")).First(&book).Error(); err != nil {
+	id, ok := parseIDParam(c)
+	if !ok {
+		return
+	}
+
+	if err := r.DB.Where("id = ?", id).First(&book).Error(); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}
@@ -196,7 +214,12 @@ func (r *bookRepository) UpdateBook(c *gin.Context) {
 	var book models.Book
 	var input models.UpdateBook
 
-	if err := r.DB.Where("id = ?", c.Param("id")).First(&book).Error(); err != nil {
+	id, ok := parseIDParam(c)
+	if !ok {
+		return
+	}
+
+	if err := r.DB.Where("id = ?", id).First(&book).Error(); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}
@@ -224,7 +247,12 @@ func (r *bookRepository) UpdateBook(c *gin.Context) {
 func (r *bookRepository) DeleteBook(c *gin.Context) {
 	var book models.Book
 
-	if err := r.DB.Where("id = ?", c.Param("id")).First(&book).Error(); err != nil {
+	id, ok := parseIDParam(c)
+	if !ok {
+		return
+	}
+
+	if err := r.DB.Where("id = ?", id).First(&book).Error(); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}

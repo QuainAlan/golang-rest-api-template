@@ -20,6 +20,7 @@ func Logger(logger *zap.Logger, collection *mongo.Collection) gin.HandlerFunc {
 
 		// End timer
 		duration := time.Since(start)
+		requestID := GetRequestID(c)
 
 		// Log the request details
 		logger.Info("Request",
@@ -30,6 +31,7 @@ func Logger(logger *zap.Logger, collection *mongo.Collection) gin.HandlerFunc {
 			zap.String("ip", c.ClientIP()),
 			zap.String("user-agent", c.Request.UserAgent()),
 			zap.String("errors", c.Errors.ByType(gin.ErrorTypePrivate).String()),
+			zap.String("request_id", requestID),
 		)
 
 		logEntry := bson.M{
@@ -40,6 +42,7 @@ func Logger(logger *zap.Logger, collection *mongo.Collection) gin.HandlerFunc {
 			"ip":         c.ClientIP(),
 			"user-agent": c.Request.UserAgent(),
 			"errors":     c.Errors.ByType(gin.ErrorTypePrivate).String(),
+			"request_id": requestID,
 		}
 
 		// Log to MongoDB
