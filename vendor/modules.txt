@@ -236,7 +236,7 @@ github.com/swaggo/files
 # github.com/swaggo/gin-swagger v1.6.1
 ## explicit; go 1.23.0
 github.com/swaggo/gin-swagger
-# github.com/swaggo/swag v1.16.4
+# github.com/swaggo/swag v1.16.6
 ## explicit; go 1.18
 github.com/swaggo/swag
 # github.com/twitchyliquid64/golang-asm v0.15.1
@@ -347,6 +347,11 @@ golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
+# golang.org/x/mod v0.31.0
+## explicit; go 1.24.0
+golang.org/x/mod/internal/lazyregexp
+golang.org/x/mod/module
+golang.org/x/mod/semver
 # golang.org/x/net v0.48.0
 ## explicit; go 1.24.0
 golang.org/x/net/html
@@ -392,6 +397,16 @@ golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/buildutil
 golang.org/x/tools/go/internal/cgo
 golang.org/x/tools/go/loader
+golang.org/x/tools/imports
+golang.org/x/tools/internal/event
+golang.org/x/tools/internal/event/core
+golang.org/x/tools/internal/event/keys
+golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/modindex
+golang.org/x/tools/internal/stdlib
 # google.golang.org/protobuf v1.36.6
 ## explicit; go 1.22
 google.golang.org/protobuf/encoding/protowire
