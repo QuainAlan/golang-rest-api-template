@@ -27,7 +27,7 @@ func parseIDParam(c *gin.Context) (uint, bool) {
 		return 0, false
 	}
 	value := c.Param("id")
-	id, err := strconv.ParseUint(value, 10, 64)
+	id, err := strconv.ParseUint(value, 10, strconv.IntSize)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id format"})
 		return 0, false
