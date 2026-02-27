@@ -173,7 +173,7 @@ func TestFindBook(t *testing.T) {
 
 	// Mock the Where method
 	mockDB.EXPECT().
-		Where("id = ?", "1").
+		Where("id = ?", uint(1)).
 		DoAndReturn(func(query interface{}, args ...interface{}) database.Database {
 			// Return mockDB to allow method chaining
 			return mockDB
@@ -216,6 +216,26 @@ func TestFindBook(t *testing.T) {
 	assert.Equal(t, expectedBook.Author, response.Data.Author)
 }
 
+func TestFindBookRejectsInvalidID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	ctx := context.Background()
+	repo := NewBookRepository(mockDB, nil, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.GET("/book/:id", repo.FindBook)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/book/1%20OR%201=1", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid id format")
+}
+
 func TestDeleteBook(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -239,7 +259,7 @@ func TestDeleteBook(t *testing.T) {
 
 	// Mock Where to return the existingBook for chaining
 	mockDB.EXPECT().
-		Where("id = ?", "1").
+		Where("id = ?", uint(1)).
 		Return(mockDB).Times(1)
 
 	// Mock First to load the existingBook and return mockDB

@@ -30,6 +30,7 @@ func NewRouter(logger *zap.Logger, mongoCollection *mongo.Collection, db databas
 	userRepository := NewUserRepository(db, ctx)
 
 	r := gin.Default()
+	r.Use(middleware.RequestID())
 	r.Use(ContextMiddleware(bookRepository))
 
 	//r.Use(gin.Logger())
