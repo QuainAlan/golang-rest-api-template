@@ -35,4 +35,4 @@ jobs:
     - name: Test
       env:
         GOTOOLCHAIN: local
-      run: go test -v ./... -race -cover
+      run: go test -v ./... -race
