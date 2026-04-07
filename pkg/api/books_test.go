@@ -171,18 +171,10 @@ func TestFindBook(t *testing.T) {
 
 	// Mock expectations
 
-	// Mock the Where method
+	// Mock the FirstByID method
 	mockDB.EXPECT().
-		Where("id = ?", uint(1)).
-		DoAndReturn(func(query interface{}, args ...interface{}) database.Database {
-			// Return mockDB to allow method chaining
-			return mockDB
-		}).Times(1)
-
-	// Mock the First method
-	mockDB.EXPECT().
-		First(gomock.Any()).
-		DoAndReturn(func(dest interface{}, conds ...interface{}) database.Database {
+		FirstByID(gomock.Any(), uint(1)).
+		DoAndReturn(func(dest interface{}, id uint) database.Database {
 			if b, ok := dest.(*models.Book); ok {
 				*b = expectedBook
 			}
@@ -257,15 +249,10 @@ func TestDeleteBook(t *testing.T) {
 		Author: "Test Author",
 	}
 
-	// Mock Where to return the existingBook for chaining
+	// Mock the FirstByID method to load the existingBook and return mockDB
 	mockDB.EXPECT().
-		Where("id = ?", uint(1)).
-		Return(mockDB).Times(1)
-
-	// Mock First to load the existingBook and return mockDB
-	mockDB.EXPECT().
-		First(gomock.Any()).
-		DoAndReturn(func(dest interface{}, conds ...interface{}) database.Database {
+		FirstByID(gomock.Any(), uint(1)).
+		DoAndReturn(func(dest interface{}, id uint) database.Database {
 			if b, ok := dest.(*models.Book); ok {
 				*b = existingBook
 			}

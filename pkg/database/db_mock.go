@@ -119,6 +119,20 @@ func (mr *MockDatabaseMockRecorder) First(dest interface{}, conds ...interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "First", reflect.TypeOf((*MockDatabase)(nil).First), varargs...)
 }
 
+// FirstByID mocks base method.
+func (m *MockDatabase) FirstByID(dest interface{}, id uint) Database {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FirstByID", dest, id)
+	ret0, _ := ret[0].(Database)
+	return ret0
+}
+
+// FirstByID indicates an expected call of FirstByID.
+func (mr *MockDatabaseMockRecorder) FirstByID(dest interface{}, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FirstByID", reflect.TypeOf((*MockDatabase)(nil).FirstByID), dest, id)
+}
+
 // Limit mocks base method.
 func (m *MockDatabase) Limit(limit int) *gorm.DB {
 	m.ctrl.T.Helper()
