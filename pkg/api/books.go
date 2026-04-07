@@ -189,7 +189,7 @@ func (r *bookRepository) FindBook(c *gin.Context) {
 		return
 	}
 
-	if err := r.DB.Where("id = ?", id).First(&book).Error(); err != nil {
+	if err := r.DB.FirstByID(&book, id).Error(); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}
@@ -219,7 +219,7 @@ func (r *bookRepository) UpdateBook(c *gin.Context) {
 		return
 	}
 
-	if err := r.DB.Where("id = ?", id).First(&book).Error(); err != nil {
+	if err := r.DB.FirstByID(&book, id).Error(); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}
@@ -252,7 +252,7 @@ func (r *bookRepository) DeleteBook(c *gin.Context) {
 		return
 	}
 
-	if err := r.DB.Where("id = ?", id).First(&book).Error(); err != nil {
+	if err := r.DB.FirstByID(&book, id).Error(); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "book not found"})
 		return
 	}

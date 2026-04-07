@@ -21,6 +21,7 @@ type Database interface {
 	Delete(interface{}, ...interface{}) *gorm.DB
 	Model(model interface{}) *gorm.DB
 	First(dest interface{}, conds ...interface{}) Database
+	FirstByID(dest interface{}, id uint) Database
 	Updates(interface{}) *gorm.DB
 	Order(value interface{}) *gorm.DB
 	Error() error
@@ -36,6 +37,10 @@ func (db *GormDatabase) Where(query interface{}, args ...interface{}) Database {
 
 func (db *GormDatabase) First(dest interface{}, conds ...interface{}) Database {
 	return &GormDatabase{db.DB.First(dest, conds...)}
+}
+
+func (db *GormDatabase) FirstByID(dest interface{}, id uint) Database {
+	return &GormDatabase{db.DB.First(dest, id)}
 }
 
 func (db *GormDatabase) Error() error {
