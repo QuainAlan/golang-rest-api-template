@@ -12,6 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var sleep = time.Sleep
+
 type Database interface {
 	Offset(offset int) *gorm.DB
 	Limit(limit int) *gorm.DB
@@ -63,13 +65,25 @@ func NewDatabase() *gorm.DB {
 		database, err = gorm.Open(postgres.Open(dbURl), &gorm.Config{})
 		if err == nil {
 			break
-		} else {
-			log.Printf("Attempt %d: Failed to initialize database. Retrying...", i)
-			time.Sleep(3 * time.Second)
 		}
+		log.Printf("Attempt %d: Failed to initialize database. Retrying...", i)
+		sleep(3 * time.Second)
 	}
-	database.AutoMigrate(&models.Book{})
-	database.AutoMigrate(&models.User{})
+
+	if database == nil {
+		log.Printf("Failed to initialize database after retries: %v", err)
+		return nil
+	}
+
+	if err := database.AutoMigrate(&models.Book{}); err != nil {
+		log.Printf("Failed to migrate Book model: %v", err)
+		return nil
+	}
+
+	if err := database.AutoMigrate(&models.User{}); err != nil {
+		log.Printf("Failed to migrate User model: %v", err)
+		return nil
+	}
 
 	return database
 }
