@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"golang-rest-api-template/pkg/cache"
 	"golang-rest-api-template/pkg/database"
 	"golang-rest-api-template/pkg/models"
@@ -36,31 +37,325 @@ func TestNewBookRepository(t *testing.T) {
 }
 
 func TestHealthcheck(t *testing.T) {
-	// Set up the mock controller and the mocked dependencies
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Set up the Gin context with a response recorder
+	mockDB := database.NewMockDatabase(ctrl)
+	mockCache := cache.NewMockCache(ctrl)
+	ctx := context.Background()
+
+	repo := NewBookRepository(mockDB, mockCache, &ctx)
+
+	// Set up Gin
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()
-	_, router := gin.CreateTestContext(recorder)
+	c, _ := gin.CreateTestContext(recorder)
 
-	// Create a mock repository and expect the Healthcheck method to be called
-	mockRepo := NewMockBookRepository(ctrl)
-	mockRepo.EXPECT().Healthcheck(gomock.Any()).Do(func(c *gin.Context) {
-		c.JSON(http.StatusOK, "ok") // Explicitly setting the response here
-	})
-
-	// Setting up a basic GET route to test Healthcheck
-	router.GET("/healthcheck", mockRepo.Healthcheck)
-
-	// Perform the GET request
-	req, _ := http.NewRequest(http.MethodGet, "/healthcheck", nil)
-	router.ServeHTTP(recorder, req)
+	// Call the actual Healthcheck method
+	repo.Healthcheck(c)
 
 	// Check the response
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "\"ok\"", recorder.Body.String())
+}
+
+func TestParseIDParamNilContext(t *testing.T) {
+	id, ok := parseIDParam(nil)
+	assert.Equal(t, uint(0), id)
+	assert.False(t, ok)
+}
+
+func TestFindBooksInvalidOffset(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	mockCache := cache.NewMockCache(ctrl)
+	ctx := context.Background()
+
+	repo := NewBookRepository(mockDB, mockCache, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.GET("/books", repo.FindBooks)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/books?offset=abc&limit=10", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid offset format")
+}
+
+func TestFindBooksInvalidLimit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	mockCache := cache.NewMockCache(ctrl)
+	ctx := context.Background()
+
+	repo := NewBookRepository(mockDB, mockCache, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.GET("/books", repo.FindBooks)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/books?offset=0&limit=xyz", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid limit format")
+}
+
+func TestCreateBookBindError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	mockCache := cache.NewMockCache(ctrl)
+	ctx := context.Background()
+
+	repo := NewBookRepository(mockDB, mockCache, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.POST("/books", func(c *gin.Context) {
+		c.Set("appCtx", repo)
+		repo.CreateBook(c)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/books", bytes.NewBufferString("invalid json"))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "error")
+}
+
+func TestCreateBookMissingAppCtx(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	mockCache := cache.NewMockCache(ctrl)
+	ctx := context.Background()
+
+	repo := NewBookRepository(mockDB, mockCache, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.POST("/books", repo.CreateBook) // Not setting appCtx
+
+	inputBook := models.CreateBook{Title: "New Book", Author: "New Author"}
+	requestBody, _ := json.Marshal(inputBook)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/books", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestCreateBookCacheKeysError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	mockCache := cache.NewMockCache(ctrl)
+	ctx := context.Background()
+
+	repo := NewBookRepository(mockDB, mockCache, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.POST("/books", func(c *gin.Context) {
+		c.Set("appCtx", repo)
+		repo.CreateBook(c)
+	})
+
+	inputBook := models.CreateBook{Title: "New Book", Author: "New Author"}
+	requestBody, _ := json.Marshal(inputBook)
+
+	mockDB.EXPECT().Create(gomock.Any()).Return(&gorm.DB{Error: nil})
+
+	// Mock cache keys error
+	mockCache.EXPECT().Keys(ctx, "books_offset_*").Return(redis.NewStringSliceResult(nil, errors.New("keys error")))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/books", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	// Should still succeed even if cache invalidation fails
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Contains(t, w.Body.String(), "New Book")
+}
+
+func TestCreateBookCacheDelError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	mockCache := cache.NewMockCache(ctrl)
+	ctx := context.Background()
+
+	repo := NewBookRepository(mockDB, mockCache, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.POST("/books", func(c *gin.Context) {
+		c.Set("appCtx", repo)
+		repo.CreateBook(c)
+	})
+
+	inputBook := models.CreateBook{Title: "New Book", Author: "New Author"}
+	requestBody, _ := json.Marshal(inputBook)
+
+	mockDB.EXPECT().Create(gomock.Any()).Return(&gorm.DB{Error: nil})
+
+	// Mock cache keys success but del error
+	mockCache.EXPECT().Keys(ctx, "books_offset_*").Return(redis.NewStringSliceResult([]string{"key1"}, nil))
+	mockCache.EXPECT().Del(ctx, "key1").Return(redis.NewIntResult(0, errors.New("del error")))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/books", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	// Should still succeed
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Contains(t, w.Body.String(), "New Book")
+}
+
+func TestUpdateBookInvalidID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	ctx := context.Background()
+	repo := NewBookRepository(mockDB, nil, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.PUT("/book/:id", repo.UpdateBook)
+
+	updateInput := models.UpdateBook{Title: "New Title", Author: "New Author"}
+	requestBody, _ := json.Marshal(updateInput)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", "/book/abc", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid id format")
+}
+
+func TestUpdateBookNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	ctx := context.Background()
+	repo := NewBookRepository(mockDB, nil, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.PUT("/book/:id", repo.UpdateBook)
+
+	updateInput := models.UpdateBook{Title: "New Title", Author: "New Author"}
+	requestBody, _ := json.Marshal(updateInput)
+
+	mockDB.EXPECT().FirstByID(gomock.Any(), uint(1)).DoAndReturn(func(dest interface{}, id uint) database.Database {
+		return mockDB
+	})
+	mockDB.EXPECT().Error().Return(gorm.ErrRecordNotFound)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", "/book/1", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "book not found")
+}
+
+func TestUpdateBookBindError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	ctx := context.Background()
+	repo := NewBookRepository(mockDB, nil, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.PUT("/book/:id", repo.UpdateBook)
+
+	existingBook := models.Book{ID: 1, Title: "Old Title", Author: "Old Author"}
+
+	mockDB.EXPECT().FirstByID(gomock.Any(), uint(1)).DoAndReturn(func(dest interface{}, id uint) database.Database {
+		*dest.(*models.Book) = existingBook
+		return mockDB
+	})
+	mockDB.EXPECT().Error().Return(nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", "/book/1", bytes.NewBufferString("invalid json"))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "error")
+}
+
+func TestDeleteBookInvalidID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	ctx := context.Background()
+	repo := NewBookRepository(mockDB, nil, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.DELETE("/book/:id", repo.DeleteBook)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodDelete, "/book/xyz", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid id format")
+}
+
+func TestDeleteBookNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	ctx := context.Background()
+	repo := NewBookRepository(mockDB, nil, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.DELETE("/book/:id", repo.DeleteBook)
+
+	mockDB.EXPECT().FirstByID(gomock.Any(), uint(1)).DoAndReturn(func(dest interface{}, id uint) database.Database {
+		return mockDB
+	})
+	mockDB.EXPECT().Error().Return(gorm.ErrRecordNotFound)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodDelete, "/book/1", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "book not found")
 }
 
 func TestFindBooks(t *testing.T) {
@@ -196,16 +491,37 @@ func TestFindBook(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var response struct {
-		Status  int         `json:"status"`
-		Message string      `json:"message"`
-		Data    models.Book `json:"data"`
+		Data models.Book `json:"data"`
 	}
 
 	err := json.NewDecoder(w.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Equal(t, expectedBook.ID, response.Data.ID)
-	assert.Equal(t, expectedBook.Title, response.Data.Title)
 	assert.Equal(t, expectedBook.Author, response.Data.Author)
+}
+
+func TestFindBookNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := database.NewMockDatabase(ctrl)
+	ctx := context.Background()
+	repo := NewBookRepository(mockDB, nil, &ctx)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.GET("/book/:id", repo.FindBook)
+
+	mockDB.EXPECT().FirstByID(gomock.Any(), uint(1)).DoAndReturn(func(dest interface{}, id uint) database.Database {
+		return mockDB
+	})
+	mockDB.EXPECT().Error().Return(gorm.ErrRecordNotFound)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/book/1", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "book not found")
 }
 
 func TestFindBookRejectsInvalidID(t *testing.T) {
