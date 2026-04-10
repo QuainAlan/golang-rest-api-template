@@ -37,6 +37,11 @@ build:
 test:
 	go test -v ./... -race -cover
 
+test-cover:
+	PKGS=$$(go list ./... | grep -vE '(^|/)(cmd/server|docs|scripts)$$'); \
+	go test -race -coverprofile=coverage.out $$PKGS; \
+	go tool cover -html=coverage.out -o coverage.html
+
 clean:
 	docker stop go-rest-api-template
 	docker stop dockerPostgres
