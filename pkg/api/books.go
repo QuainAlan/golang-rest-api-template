@@ -143,8 +143,13 @@ func (r *bookRepository) FindBooks(c *gin.Context) {
 // @Failure 401 {string} string "Unauthorized"
 // @Router /books [post]
 func (r *bookRepository) CreateBook(c *gin.Context) {
-	appCtx, exists := c.MustGet("appCtx").(*bookRepository)
+	appCtxInterface, exists := c.Get("appCtx")
 	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+	appCtx, ok := appCtxInterface.(*bookRepository)
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
