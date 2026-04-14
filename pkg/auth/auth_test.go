@@ -3,6 +3,7 @@ package auth
 import (
 	"testing"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,6 +19,26 @@ func TestGenerateToken(t *testing.T) {
 	token, err := GenerateToken(user)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, token)
+}
+
+func TestGenerateTokenRoundTripUsernameClaim(t *testing.T) {
+	const wantUser = "alice"
+	tokenStr, err := GenerateToken(wantUser)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	parsed := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenStr, parsed, func(token *jwt.Token) (interface{}, error) {
+		return JwtKey, nil
+	})
+	if !assert.NoError(t, err) {
+		return
+	}
+	if !assert.True(t, token.Valid) {
+		return
+	}
+	assert.Equal(t, wantUser, parsed.Username)
 }
 
 func TestGenerateRandomKey(t *testing.T) {
