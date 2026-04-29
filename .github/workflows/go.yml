@@ -1,5 +1,5 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+# Build, unit tests, and Docker-based e2e (pytest) in a fail-fast chain.
+# See: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
 name: Go
 permissions:
@@ -20,19 +20,70 @@ on:
       - "Makefile"
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.25'
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
 
-    - name: Build
-      run: go build -v ./...
+      - name: Build
+        run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./... -race
+  unit-test:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Unit tests
+        run: go test ./... -race
+
+  e2e:
+    needs: [unit-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pytest dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Start stack
+        run: docker compose up -d --build
+
+      - name: Wait for API
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            if curl -sfS "http://127.0.0.1:8001/api/v1/" >/dev/null; then
+              echo "API ready after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become ready in time"
+          exit 1
+
+      - name: Run e2e tests
+        run: pytest -v tests/e2e.py
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose down -v
