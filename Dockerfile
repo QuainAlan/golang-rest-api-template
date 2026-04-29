@@ -1,4 +1,4 @@
-# Align with go.mod and CI (see .github/workflows/go.yml).
+# Align with go.mod and CI (see .github/workflows/ci.yml).
 FROM golang:1.25-bookworm
 WORKDIR /app
 COPY go.mod go.sum ./

@@ -1,7 +1,7 @@
 # Build, unit tests, and Docker-based e2e (pytest) in a fail-fast chain.
 # See: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: Go
+name: CI
 permissions:
   contents: read
 
