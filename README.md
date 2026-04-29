@@ -65,8 +65,8 @@ golang-rest-api-template/
 │     ├── book.go
 │     └── user.go
 ├── README.md
+├── .env.example
 ├── scripts
-│  ├── generate_key
 │  └── generate_key.go
 └── vendor
 ```
@@ -103,15 +103,28 @@ Please refer to the [Makefile](./Makefile) if you need to build in the local env
 
 ### Environment Variables
 
-You can set the environment variables in the `.env` file. Here are some important variables:
+Copy [`.env.example`](./.env.example) to `.env`, adjust values for your environment, and load them into the process environment (for example `set -a && . ./.env && set +a` in Bash, or `docker compose --env-file .env up` so Compose picks up substitutions). **Do not commit `.env`.**
 
-- `POSTGRES_HOST`
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_PORT`
-- `JWT_SECRET`
-- `API_SECRET_KEY`
+Names below match `os.Getenv` usage in this repository:
+
+| Variable | Purpose |
+| -------- | ------- |
+| `POSTGRES_HOST` | PostgreSQL hostname (e.g. `localhost` locally, service name in Compose) |
+| `POSTGRES_DB` | Database name |
+| `POSTGRES_USER` | Database user |
+| `POSTGRES_PASSWORD` | Database password |
+| `POSTGRES_PORT` | PostgreSQL port |
+| `REDIS_HOST` | Redis hostname (the app appends `:6379`; see `pkg/cache/cache.go`) |
+| `JWT_SECRET_KEY` | Secret for signing JWTs (`pkg/auth/auth.go`) |
+| `API_SECRET_KEY` | Secret compared to the `X-API-Key` header (`pkg/middleware/api_key.go`) |
+
+To generate URL-safe random values for `JWT_SECRET_KEY` and `API_SECRET_KEY`, run:
+
+```bash
+go run ./scripts/generate_key.go
+```
+
+`docker-compose.yml` and the `run-local` target in the [Makefile](./Makefile) ship **demo-only** credentials so the stack starts quickly. Replace them with generated secrets for anything beyond local experimentation.
 
 ### API Documentation
 
