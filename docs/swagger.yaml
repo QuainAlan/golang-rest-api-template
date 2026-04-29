@@ -148,12 +148,17 @@ paths:
           description: Successfully deleted book
           schema:
             type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
         "404":
           description: book not found
           schema:
             type: string
       security:
       - ApiKeyAuth: []
+      - JwtAuth: []
       summary: Delete a book by ID
       tags:
       - books
@@ -208,12 +213,17 @@ paths:
           description: Bad Request
           schema:
             type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
         "404":
           description: book not found
           schema:
             type: string
       security:
       - ApiKeyAuth: []
+      - JwtAuth: []
       summary: Update a book by ID
       tags:
       - books
@@ -269,7 +279,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "201":
           description: Successfully registered
           schema:
             type: string

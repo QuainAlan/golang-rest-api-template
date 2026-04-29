@@ -207,12 +207,14 @@ func (r *bookRepository) FindBook(c *gin.Context) {
 // @Description Update the book details for the given ID
 // @Tags books
 // @Security ApiKeyAuth
+// @Security JwtAuth
 // @Accept  json
 // @Produce  json
 // @Param id path string true "Book ID"
 // @Param input body models.UpdateBook true "Update book object"
 // @Success 200 {object} models.Book "Successfully updated book"
 // @Failure 400 {string} string "Bad Request"
+// @Failure 401 {string} string "Unauthorized"
 // @Failure 404 {string} string "book not found"
 // @Router /books/{id} [put]
 func (r *bookRepository) UpdateBook(c *gin.Context) {
@@ -244,9 +246,11 @@ func (r *bookRepository) UpdateBook(c *gin.Context) {
 // @Description Delete the book with the given ID
 // @Tags books
 // @Security ApiKeyAuth
+// @Security JwtAuth
 // @Produce json
 // @Param id path string true "Book ID"
 // @Success 204 {string} string "Successfully deleted book"
+// @Failure 401 {string} string "Unauthorized"
 // @Failure 404 {string} string "book not found"
 // @Router /books/{id} [delete]
 func (r *bookRepository) DeleteBook(c *gin.Context) {

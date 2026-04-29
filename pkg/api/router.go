@@ -49,8 +49,8 @@ func NewRouter(logger *zap.Logger, mongoCollection *mongo.Collection, db databas
 		v1.GET("/books", middleware.APIKeyAuth(), bookRepository.FindBooks)
 		v1.POST("/books", middleware.APIKeyAuth(), middleware.JWTAuth(), bookRepository.CreateBook)
 		v1.GET("/books/:id", middleware.APIKeyAuth(), bookRepository.FindBook)
-		v1.PUT("/books/:id", middleware.APIKeyAuth(), bookRepository.UpdateBook)
-		v1.DELETE("/books/:id", middleware.APIKeyAuth(), bookRepository.DeleteBook)
+		v1.PUT("/books/:id", middleware.APIKeyAuth(), middleware.JWTAuth(), bookRepository.UpdateBook)
+		v1.DELETE("/books/:id", middleware.APIKeyAuth(), middleware.JWTAuth(), bookRepository.DeleteBook)
 
 		v1.POST("/login", middleware.APIKeyAuth(), userRepository.LoginHandler)
 		v1.POST("/register", middleware.APIKeyAuth(), userRepository.RegisterHandler)
