@@ -7,9 +7,12 @@ services:
     ports:
       - 8001:8001
     depends_on:
-      - db
-      - mongo
-      - redis
+      db:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       POSTGRES_DB: go_app_dev
       POSTGRES_HOST: dockerPostgres
@@ -35,12 +38,24 @@ services:
       - POSTGRES_USER=docker
       - POSTGRES_PASSWORD=password
     command: -p 5435
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docker -d go_app_dev -p 5435"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   redis:
     image: "redis:alpine"
     ports:
       - "6379:6379"
     container_name: dockerRedis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
   mongo:
     image: mongo
@@ -50,6 +65,12 @@ services:
     ports:
       - "27017:27017"
     restart: always
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
 volumes:
   mongo_data: # Declare the volume for MongoDB data
