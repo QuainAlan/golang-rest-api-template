@@ -24,7 +24,8 @@ services:
     restart: always
     container_name: dockerPostgres
     volumes:
-      - .dbdata:/var/lib/postgres
+      # Official postgres image stores cluster data under PGDATA (default /var/lib/postgresql/data).
+      - .dbdata:/var/lib/postgresql/data
     ports:
       - "5435:5435"
     environment:
