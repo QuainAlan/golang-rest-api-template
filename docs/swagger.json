@@ -180,6 +180,9 @@
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "JwtAuth": []
                     }
                 ],
                 "description": "Update the book details for the given ID",
@@ -224,6 +227,12 @@
                             "type": "string"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "404": {
                         "description": "book not found",
                         "schema": {
@@ -236,6 +245,9 @@
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "JwtAuth": []
                     }
                 ],
                 "description": "Delete the book with the given ID",
@@ -258,6 +270,12 @@
                 "responses": {
                     "204": {
                         "description": "Successfully deleted book",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -358,7 +376,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Successfully registered",
                         "schema": {
                             "type": "string"

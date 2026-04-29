@@ -135,10 +135,21 @@ http://localhost:8001/swagger/index.html
 
 ### Authentication
 
-To use authenticated routes, you must include the `Authorization` header with the JWT token.
+All versioned routes expect the `X-API-Key` header matching `API_SECRET_KEY` (service-to-service gate).
+
+Book **mutations** (`POST`, `PUT`, and `DELETE` on `/api/v1/books` and `/api/v1/books/:id`) also require a valid user JWT in `Authorization: Bearer <token>` (obtain via `/api/v1/register` and `/api/v1/login`). Book **reads** (`GET` list and `GET` by id) require the API key only.
 
 ```bash
-curl -H "Authorization: Bearer <YOUR_TOKEN>" http://localhost:8001/api/v1/books
+curl -H "X-API-Key: <YOUR_API_KEY>" http://localhost:8001/api/v1/books
+```
+
+```bash
+curl -X POST \
+  -H "X-API-Key: <YOUR_API_KEY>" \
+  -H "Authorization: Bearer <YOUR_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Example","author":"Author"}' \
+  http://localhost:8001/api/v1/books
 ```
 
 ## Contributing

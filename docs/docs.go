@@ -186,6 +186,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "JwtAuth": []
                     }
                 ],
                 "description": "Update the book details for the given ID",
@@ -230,6 +233,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "404": {
                         "description": "book not found",
                         "schema": {
@@ -242,6 +251,9 @@ const docTemplate = `{
                 "security": [
                     {
                         "ApiKeyAuth": []
+                    },
+                    {
+                        "JwtAuth": []
                     }
                 ],
                 "description": "Delete the book with the given ID",
@@ -264,6 +276,12 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "Successfully deleted book",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -364,7 +382,7 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "description": "Successfully registered",
                         "schema": {
                             "type": "string"
