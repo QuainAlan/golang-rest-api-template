@@ -48,7 +48,10 @@ func main() {
 		log.Fatalf("invalid API_SECRET_KEY: %v", err)
 	}
 
-	redisClient := cache.NewRedisClient()
+	redisClient, err := cache.NewRedisClient()
+	if err != nil {
+		log.Fatalf("redis: %v", err)
+	}
 	db := database.NewDatabase()
 	dbWrapper := &database.GormDatabase{DB: db}
 	mongo := database.SetupMongoDB()

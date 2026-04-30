@@ -116,7 +116,17 @@ Names below match `os.Getenv` usage in this repository:
 | `POSTGRES_USER` | Database user |
 | `POSTGRES_PASSWORD` | Database password |
 | `POSTGRES_PORT` | PostgreSQL port |
-| `REDIS_HOST` | Redis hostname (the app appends `:6379`; see `pkg/cache/cache.go`) |
+| `REDIS_ADDR` | Optional full `host:port` for Redis; when set, overrides `REDIS_HOST` / `REDIS_PORT` (`pkg/cache/cache.go`) |
+| `REDIS_HOST` | Redis hostname when `REDIS_ADDR` is unset (default `127.0.0.1`) |
+| `REDIS_PORT` | Redis TCP port when `REDIS_ADDR` is unset (default `6379`) |
+| `REDIS_PASSWORD` | Redis `AUTH` password (optional) |
+| `REDIS_USERNAME` | Redis ACL username (optional; Redis 6+) |
+| `REDIS_DB` | Logical database index (default `0`) |
+| `REDIS_TLS` | Set `true` / `1` / `yes` to use TLS (`MinVersion` TLS 1.2) |
+| `REDIS_TLS_INSECURE` | Set `true` / `1` / `yes` to skip server certificate verification (dev only) |
+| `REDIS_DIAL_TIMEOUT` | Dial timeout (Go duration, default `5s`) |
+| `REDIS_READ_TIMEOUT` | Read timeout (default `3s`) |
+| `REDIS_WRITE_TIMEOUT` | Write timeout (default `3s`) |
 | `JWT_SECRET_KEY` | Secret for signing JWTs (`pkg/auth/auth.go`) |
 | `API_SECRET_KEY` | Secret compared to the `X-API-Key` header (`pkg/middleware/api_key.go`) |
 | `GIN_TRUSTED_PROXIES` | Optional comma-separated CIDRs trusted for `X-Forwarded-For` / `ClientIP` (`pkg/api/router.go`). If unset, only the direct peer address is used. |
