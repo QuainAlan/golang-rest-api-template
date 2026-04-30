@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func testRouterJWTAuthOnly(t *testing.T) *gin.Engine {
@@ -76,11 +76,11 @@ func TestJWTAuthRejectsBadRequests(t *testing.T) {
 		t.Fatalf("GenerateToken: %v", err)
 	}
 	key := auth.JwtKey
-	exp := time.Now().Add(time.Hour).Unix()
+	exp := time.Now().Add(time.Hour)
 	claims := &auth.Claims{
 		Username: "other",
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: exp,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(exp),
 		},
 	}
 	hs512 := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
