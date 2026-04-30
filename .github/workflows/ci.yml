@@ -61,6 +61,15 @@ jobs:
       - name: Install pytest dependencies
         run: pip install -r tests/requirements.txt
 
+      - name: Create .env for Docker Compose
+        run: |
+          set -euo pipefail
+          umask 077
+          {
+            echo "JWT_SECRET_KEY=$(openssl rand -base64 48 | tr -d '\n')"
+            echo "API_SECRET_KEY=$(openssl rand -base64 48 | tr -d '\n')"
+          } > .env
+
       - name: Start stack
         run: docker compose up -d --build --wait --wait-timeout 180
 
@@ -81,7 +90,11 @@ jobs:
           exit 1
 
       - name: Run e2e tests
-        run: pytest -v tests/e2e.py
+        run: |
+          set -euo pipefail
+          set -a && . ./.env && set +a
+          export BASE_URL="${BASE_URL:-http://127.0.0.1:8001/api/v1}"
+          pytest -v tests/e2e.py
 
       - name: Show service logs on failure
         if: failure()

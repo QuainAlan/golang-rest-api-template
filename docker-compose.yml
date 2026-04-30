@@ -19,8 +19,9 @@ services:
       POSTGRES_USER: docker
       POSTGRES_PASSWORD: password
       POSTGRES_PORT: 5435
-      JWT_SECRET_KEY: ObL89O3nOSSEj6tbdHako0cXtPErzBUfq8l8o/3KD9g=INSECURE
-      API_SECRET_KEY: cJGZ8L1sDcPezjOy1zacPJZxzZxrPObm2Ggs1U0V+fE=INSECURE
+      # Load from a project-root `.env` file (Compose interpolates it) or from the shell environment.
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set - copy .env.example to .env and fill secrets}
+      API_SECRET_KEY: ${API_SECRET_KEY:?API_SECRET_KEY must be set - copy .env.example to .env and fill secrets}
       REDIS_HOST: redis
       MONGODB_URI: mongodb://mongo:27017
 
