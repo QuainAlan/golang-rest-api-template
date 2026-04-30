@@ -50,17 +50,15 @@ func NewUserRepository(db database.Database, ctx *context.Context) *userReposito
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /login [post]
 func (r *userRepository) LoginHandler(c *gin.Context) {
-	var incomingUser models.User
+	var incoming models.LoginUser
 	var dbUser models.User
 
-	// Get JSON body
-	if err := c.ShouldBindJSON(&incomingUser); err != nil {
+	if err := c.ShouldBindJSON(&incoming); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request"})
 		return
 	}
 
-	// Fetch the user from the database
-	if err := r.DB.Where("username = ?", incomingUser.Username).First(&dbUser).Error(); err != nil {
+	if err := r.DB.Where("username = ?", incoming.Username).First(&dbUser).Error(); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		} else {
@@ -69,8 +67,7 @@ func (r *userRepository) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// Verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(incomingUser.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(incoming.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}

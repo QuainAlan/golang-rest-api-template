@@ -10,7 +10,7 @@ type LoginUser struct {
 type User struct {
 	ID        uint      `json:"id" gorm:"primary_key"`
 	Username  string    `json:"username" gorm:"unique"`
-	Password  string    `json:"password"`
+	Password  string    `json:"-"`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
