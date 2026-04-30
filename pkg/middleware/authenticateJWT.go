@@ -28,10 +28,17 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
+		signingKey := auth.JWTSigningKey()
+		if len(signingKey) < auth.MinJWTSecretKeyBytes {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "JWT signing key not configured"})
+			c.Abort()
+			return
+		}
+
 		tokenStr := header[len(BearerSchema):]
 		claims := &auth.Claims{}
 
-		token, err := jwt.ParseWithClaims(tokenStr, claims, auth.JWTKeyFunc(auth.JwtKey))
+		token, err := jwt.ParseWithClaims(tokenStr, claims, auth.JWTKeyFunc(signingKey))
 
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})

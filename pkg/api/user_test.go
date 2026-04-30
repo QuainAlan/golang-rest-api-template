@@ -9,7 +9,6 @@ import (
 	"golang-rest-api-template/pkg/models"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"gorm.io/gorm"
@@ -34,7 +33,6 @@ func TestNewUserRepository(t *testing.T) {
 }
 
 func TestLoginHandlerSuccess(t *testing.T) {
-	os.Setenv("JWT_SECRET_KEY", "testkey")
 	// Set up real in-memory DB
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	if err != nil {
