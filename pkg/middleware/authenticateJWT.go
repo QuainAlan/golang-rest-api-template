@@ -9,6 +9,9 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+// JWTAuth returns Gin middleware that requires a valid Bearer JWT signed
+// with HMAC-SHA256 using the application's JWT secret. Other algorithms are
+// rejected before signature verification.
 func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		const BearerSchema = "Bearer "
@@ -28,9 +31,7 @@ func JWTAuth() gin.HandlerFunc {
 		tokenStr := header[len(BearerSchema):]
 		claims := &auth.Claims{}
 
-		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-			return auth.JwtKey, nil
-		})
+		token, err := jwt.ParseWithClaims(tokenStr, claims, auth.JWTKeyFunc(auth.JwtKey))
 
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})

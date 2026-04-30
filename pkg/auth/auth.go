@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"os"
 	"time"
 
@@ -17,6 +18,19 @@ type Claims struct {
 }
 
 var JwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+
+// JWTKeyFunc returns a jwt.Keyfunc for ParseWithClaims that only accepts
+// tokens signed with HMAC-SHA256 using key. Any other signing method
+// (including "none" and asymmetric algorithms) is rejected to prevent
+// algorithm confusion attacks.
+func JWTKeyFunc(key []byte) jwt.Keyfunc {
+	return func(token *jwt.Token) (interface{}, error) {
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return key, nil
+	}
+}
 
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
