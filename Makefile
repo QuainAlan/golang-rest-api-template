@@ -9,6 +9,7 @@ build-docker:
 	docker compose build --no-cache
 
 # Run API against local Docker DBs. Requires `.env` with JWT_SECRET_KEY and API_SECRET_KEY (see .env.example).
+# Optional: set GIN_MODE=release in `.env` for the same security middleware as Docker Compose.
 run-local:
 	docker start dockerPostgres
 	docker start dockerRedis

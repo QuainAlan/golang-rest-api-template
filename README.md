@@ -129,6 +129,7 @@ Names below match `os.Getenv` usage in this repository:
 | `REDIS_WRITE_TIMEOUT` | Write timeout (default `3s`) |
 | `JWT_SECRET_KEY` | Secret for signing JWTs (`pkg/auth/auth.go`) |
 | `API_SECRET_KEY` | Secret compared to the `X-API-Key` header (`pkg/middleware/api_key.go`) |
+| `GIN_MODE` | Standard Gin variable: `debug` (default if unset), `release` (enables Security + XSS middleware in `pkg/api/router.go`), or `test` |
 | `GIN_TRUSTED_PROXIES` | Optional comma-separated CIDRs trusted for `X-Forwarded-For` / `ClientIP` (`pkg/api/router.go`). If unset, only the direct peer address is used. |
 | `REQUEST_MAX_BODY_BYTES` | Optional cap on JSON/body bytes for `POST`/`PUT`/`PATCH` (default `1048576`, i.e. 1 MiB; `pkg/middleware/max_body.go`). |
 
@@ -138,7 +139,7 @@ To generate URL-safe random values for `JWT_SECRET_KEY` and `API_SECRET_KEY`, ru
 go run ./scripts/generate_key.go
 ```
 
-`docker-compose.yml` does **not** embed JWT or API secrets; they must come from `.env` or your shell environment so keys are not committed to the repository.
+`docker-compose.yml` does **not** embed JWT or API secrets; they must come from `.env` or your shell environment so keys are not committed to the repository. The Compose file sets **`GIN_MODE=release`** for the API service so production-style security headers apply; override in `.env` if you need `debug` locally.
 
 ### API Documentation
 
