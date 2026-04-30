@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,11 +48,11 @@ func TestGenerateRandomKey(t *testing.T) {
 
 func TestJWTKeyFuncRejectsNonHS256Algorithms(t *testing.T) {
 	key := []byte("jwt-keyfunc-test-secret-32bytes!!")
-	exp := time.Now().Add(time.Hour).Unix()
+	exp := time.Now().Add(time.Hour)
 	baseClaims := Claims{
 		Username: "attacker",
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: exp,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(exp),
 		},
 	}
 
@@ -85,8 +85,8 @@ func TestJWTKeyFuncAcceptsHS256(t *testing.T) {
 	key := []byte("jwt-keyfunc-hs256-accept-secret!")
 	claims := &Claims{
 		Username: "legit",
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		},
 	}
 	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

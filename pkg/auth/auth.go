@@ -7,14 +7,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Claims struct to be encoded to JWT
+// Claims carries custom JWT fields plus registered (standard) JWT claims.
 type Claims struct {
 	Username string `json:"username"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 var JwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
@@ -38,11 +38,11 @@ func HashPassword(password string) (string, error) {
 }
 
 func GenerateToken(username string) (string, error) {
-	expiresAt := time.Now().Add(5 * time.Minute).Unix()
+	exp := time.Now().Add(5 * time.Minute)
 	claims := &Claims{
 		Username: username,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expiresAt,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(exp),
 		},
 	}
 
