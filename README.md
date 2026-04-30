@@ -122,8 +122,8 @@ Names below match `os.Getenv` usage in this repository:
 | `REDIS_PASSWORD` | Redis `AUTH` password (optional) |
 | `REDIS_USERNAME` | Redis ACL username (optional; Redis 6+) |
 | `REDIS_DB` | Logical database index (default `0`) |
-| `REDIS_TLS` | Set `true` / `1` / `yes` to use TLS (`MinVersion` TLS 1.2) |
-| `REDIS_TLS_INSECURE` | Set `true` / `1` / `yes` to skip server certificate verification (dev only) |
+| `REDIS_TLS` | Set `true` / `1` / `yes` / `on` to use TLS (`MinVersion` TLS 1.2) |
+| `REDIS_TLS_INSECURE` | Set `true` / `1` / `yes` / `on` to skip server certificate verification (**never in production**) |
 | `REDIS_DIAL_TIMEOUT` | Dial timeout (Go duration, default `5s`) |
 | `REDIS_READ_TIMEOUT` | Read timeout (default `3s`) |
 | `REDIS_WRITE_TIMEOUT` | Write timeout (default `3s`) |

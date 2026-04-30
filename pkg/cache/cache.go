@@ -80,16 +80,27 @@ func redisOptionsFromEnv() (*redis.Options, error) {
 	opts.ReadTimeout = read
 	opts.WriteTimeout = write
 
-	tlsVal := strings.ToLower(strings.TrimSpace(os.Getenv("REDIS_TLS")))
-	if tlsVal == "1" || tlsVal == "true" || tlsVal == "yes" {
+	if envTruthy("REDIS_TLS") {
 		cfg := &tls.Config{MinVersion: tls.VersionTLS12}
-		if insecure := strings.ToLower(strings.TrimSpace(os.Getenv("REDIS_TLS_INSECURE"))); insecure == "1" || insecure == "true" || insecure == "yes" {
-			cfg.InsecureSkipVerify = true
+		if envTruthy("REDIS_TLS_INSECURE") {
+			// Development only (e.g. self-signed certs). Do not set in production.
+			cfg.InsecureSkipVerify = true // #nosec G402 -- REDIS_TLS_INSECURE explicit opt-in for non-prod TLS
 		}
 		opts.TLSConfig = cfg
 	}
 
 	return opts, nil
+}
+
+// envTruthy reports whether the named environment variable is set to a
+// conventional affirmative value (1, true, yes, on), case-insensitive.
+func envTruthy(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func durationFromEnv(key string, defaultVal time.Duration) (time.Duration, error) {

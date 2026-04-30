@@ -113,6 +113,21 @@ func TestRedisOptionsFromEnvTLSInsecure(t *testing.T) {
 	assert.True(t, o.TLSConfig.InsecureSkipVerify)
 }
 
+func TestRedisOptionsFromEnvTruthyTLSOn(t *testing.T) {
+	t.Setenv("REDIS_ADDR", "127.0.0.1:6379")
+	t.Setenv("REDIS_TLS", "on")
+	t.Setenv("REDIS_TLS_INSECURE", "")
+
+	o, err := redisOptionsFromEnv()
+	if !assert.NoError(t, err) {
+		return
+	}
+	if !assert.NotNil(t, o.TLSConfig) {
+		return
+	}
+	assert.False(t, o.TLSConfig.InsecureSkipVerify)
+}
+
 func TestRedisOptionsFromEnvInvalidDialTimeout(t *testing.T) {
 	t.Setenv("REDIS_ADDR", "127.0.0.1:6379")
 	t.Setenv("REDIS_DIAL_TIMEOUT", "nope")
