@@ -1,12 +1,23 @@
 package auth
 
 import (
+	"bytes"
+	"errors"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	// Same-length key as production minimum; tests do not read JWT_SECRET_KEY at init.
+	if err := SetJWTSigningKey(bytes.Repeat([]byte("k"), MinJWTSecretKeyBytes)); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
 
 func TestHashPassword(t *testing.T) {
 	password := "1234"
@@ -30,7 +41,7 @@ func TestGenerateTokenRoundTripUsernameClaim(t *testing.T) {
 	}
 
 	parsed := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenStr, parsed, JWTKeyFunc(JwtKey))
+	token, err := jwt.ParseWithClaims(tokenStr, parsed, JWTKeyFunc(JWTSigningKey()))
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -44,6 +55,38 @@ func TestGenerateRandomKey(t *testing.T) {
 	randomKey := GenerateRandomKey()
 	assert.NotEmpty(t, randomKey)
 	assert.Len(t, randomKey, 44)
+}
+
+func TestSetJWTSigningKeyRejectsShortSecret(t *testing.T) {
+	before := JWTSigningKey()
+	err := SetJWTSigningKey(bytes.Repeat([]byte("s"), MinJWTSecretKeyBytes-1))
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrJWTSigningKeyTooShort)
+	assert.Equal(t, before, JWTSigningKey())
+}
+
+func TestSetJWTSigningKeyAcceptsMinimumLength(t *testing.T) {
+	secret := bytes.Repeat([]byte("z"), MinJWTSecretKeyBytes)
+	err := SetJWTSigningKey(secret)
+	if !assert.NoError(t, err) {
+		return
+	}
+	assert.Equal(t, secret, JWTSigningKey())
+	_, err = GenerateToken("user-after-rotate")
+	assert.NoError(t, err)
+	// Restore default for other tests in the package.
+	assert.NoError(t, SetJWTSigningKey(bytes.Repeat([]byte("k"), MinJWTSecretKeyBytes)))
+}
+
+func TestGenerateTokenErrorWhenSigningKeyUnset(t *testing.T) {
+	prev := JWTSigningKey()
+	ClearJWTSigningKeyForTesting()
+	t.Cleanup(func() {
+		assert.NoError(t, SetJWTSigningKey(prev))
+	})
+	_, err := GenerateToken("any")
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrJWTSigningKeyNotConfigured))
 }
 
 func TestJWTKeyFuncRejectsNonHS256Algorithms(t *testing.T) {

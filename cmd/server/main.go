@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"golang-rest-api-template/pkg/api"
+	"golang-rest-api-template/pkg/auth"
 	"golang-rest-api-template/pkg/cache"
 	"golang-rest-api-template/pkg/database"
 	"log"
+	"os"
 
 	"go.uber.org/zap"
 
@@ -38,6 +40,10 @@ import (
 // @externalDocs.description  OpenAPI
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
+	if err := auth.SetJWTSigningKey([]byte(os.Getenv("JWT_SECRET_KEY"))); err != nil {
+		log.Fatalf("invalid JWT_SECRET_KEY: %v", err)
+	}
+
 	redisClient := cache.NewRedisClient()
 	db := database.NewDatabase()
 	dbWrapper := &database.GormDatabase{DB: db}

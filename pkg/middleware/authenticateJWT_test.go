@@ -1,10 +1,12 @@
 package middleware
 
 import (
+	"bytes"
 	"encoding/json"
 	"golang-rest-api-template/pkg/auth"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -14,6 +16,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+func TestMain(m *testing.M) {
+	if err := auth.SetJWTSigningKey(bytes.Repeat([]byte("m"), auth.MinJWTSecretKeyBytes)); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
+
 func testRouterJWTAuthOnly(t *testing.T) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -22,6 +31,24 @@ func testRouterJWTAuthOnly(t *testing.T) *gin.Engine {
 		c.Status(http.StatusOK)
 	})
 	return r
+}
+
+func TestJWTAuthSigningKeyNotConfiguredReturns503(t *testing.T) {
+	prev := auth.JWTSigningKey()
+	auth.ClearJWTSigningKeyForTesting()
+	t.Cleanup(func() {
+		if err := auth.SetJWTSigningKey(prev); err != nil {
+			t.Fatalf("restore jwt key: %v", err)
+		}
+	})
+	r := testRouterJWTAuthOnly(t)
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer irrelevant")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("want 503, got %d body=%q", rec.Code, rec.Body.String())
+	}
 }
 
 func TestJWTAuthValidBearer(t *testing.T) {
@@ -75,7 +102,7 @@ func TestJWTAuthRejectsBadRequests(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GenerateToken: %v", err)
 	}
-	key := auth.JwtKey
+	key := auth.JWTSigningKey()
 	exp := time.Now().Add(time.Hour)
 	claims := &auth.Claims{
 		Username: "other",

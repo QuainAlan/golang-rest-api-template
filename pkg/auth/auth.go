@@ -3,12 +3,30 @@ package auth
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
-	"os"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+)
+
+// MinJWTSecretKeyBytes is the minimum accepted length for the HMAC JWT signing
+// secret (raw bytes, not base64-decoded length).
+const MinJWTSecretKeyBytes = 32
+
+var (
+	// ErrJWTSigningKeyNotConfigured is returned by GenerateToken when
+	// SetJWTSigningKey has not been called successfully.
+	ErrJWTSigningKeyNotConfigured = errors.New("jwt signing key not configured")
+
+	// ErrJWTSigningKeyTooShort is returned by SetJWTSigningKey when the secret
+	// is shorter than MinJWTSecretKeyBytes.
+	ErrJWTSigningKeyTooShort = errors.New("jwt signing key below minimum length")
+
+	signingMu     sync.RWMutex
+	jwtSigningKey []byte
 )
 
 // Claims carries custom JWT fields plus registered (standard) JWT claims.
@@ -17,7 +35,42 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-var JwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+// SetJWTSigningKey configures the symmetric key used to sign and verify JWTs.
+// It must be called once during application startup with a secret of at least
+// MinJWTSecretKeyBytes; otherwise GenerateToken and JWT middleware cannot work.
+func SetJWTSigningKey(secret []byte) error {
+	if len(secret) < MinJWTSecretKeyBytes {
+		return fmt.Errorf("%w: got %d bytes, need at least %d", ErrJWTSigningKeyTooShort, len(secret), MinJWTSecretKeyBytes)
+	}
+	k := make([]byte, len(secret))
+	copy(k, secret)
+	signingMu.Lock()
+	jwtSigningKey = k
+	signingMu.Unlock()
+	return nil
+}
+
+// JWTSigningKey returns a copy of the configured JWT HMAC secret, or nil if
+// SetJWTSigningKey has not completed successfully.
+func JWTSigningKey() []byte {
+	signingMu.RLock()
+	defer signingMu.RUnlock()
+	if len(jwtSigningKey) == 0 {
+		return nil
+	}
+	out := make([]byte, len(jwtSigningKey))
+	copy(out, jwtSigningKey)
+	return out
+}
+
+// ClearJWTSigningKeyForTesting drops the configured signing key. It is only
+// intended for tests that cover misconfiguration; callers must restore a valid
+// key (for example via t.Cleanup and SetJWTSigningKey).
+func ClearJWTSigningKeyForTesting() {
+	signingMu.Lock()
+	jwtSigningKey = nil
+	signingMu.Unlock()
+}
 
 // JWTKeyFunc returns a jwt.Keyfunc for ParseWithClaims that only accepts
 // tokens signed with HMAC-SHA256 using key. Any other signing method
@@ -38,6 +91,13 @@ func HashPassword(password string) (string, error) {
 }
 
 func GenerateToken(username string) (string, error) {
+	signingMu.RLock()
+	key := jwtSigningKey
+	signingMu.RUnlock()
+	if len(key) < MinJWTSecretKeyBytes {
+		return "", fmt.Errorf("auth.GenerateToken: %w", ErrJWTSigningKeyNotConfigured)
+	}
+
 	exp := time.Now().Add(5 * time.Minute)
 	claims := &Claims{
 		Username: username,
@@ -47,7 +107,7 @@ func GenerateToken(username string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(JwtKey)
+	tokenString, err := token.SignedString(key)
 
 	if err != nil {
 		return "", err
