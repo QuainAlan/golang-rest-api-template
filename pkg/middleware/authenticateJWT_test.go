@@ -20,6 +20,9 @@ func TestMain(m *testing.M) {
 	if err := auth.SetJWTSigningKey(bytes.Repeat([]byte("m"), auth.MinJWTSecretKeyBytes)); err != nil {
 		panic(err)
 	}
+	if err := SetAPISecretKey(bytes.Repeat([]byte("x"), MinAPISecretKeyBytes)); err != nil {
+		panic(err)
+	}
 	os.Exit(m.Run())
 }
 

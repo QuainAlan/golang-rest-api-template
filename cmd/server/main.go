@@ -6,6 +6,7 @@ import (
 	"golang-rest-api-template/pkg/auth"
 	"golang-rest-api-template/pkg/cache"
 	"golang-rest-api-template/pkg/database"
+	"golang-rest-api-template/pkg/middleware"
 	"log"
 	"os"
 
@@ -42,6 +43,9 @@ import (
 func main() {
 	if err := auth.SetJWTSigningKey([]byte(os.Getenv("JWT_SECRET_KEY"))); err != nil {
 		log.Fatalf("invalid JWT_SECRET_KEY: %v", err)
+	}
+	if err := middleware.SetAPISecretKey([]byte(os.Getenv("API_SECRET_KEY"))); err != nil {
+		log.Fatalf("invalid API_SECRET_KEY: %v", err)
 	}
 
 	redisClient := cache.NewRedisClient()
