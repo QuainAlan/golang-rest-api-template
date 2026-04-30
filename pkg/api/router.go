@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,6 +37,7 @@ func NewRouter(logger *zap.Logger, mongoCollection *mongo.Collection, db databas
 	if err := configureTrustedProxies(r); err != nil {
 		panic("api: trusted proxies: " + err.Error())
 	}
+	r.Use(middleware.MaxRequestBody(maxRequestBodyBytesFromEnv()))
 	r.Use(middleware.RequestID())
 	r.Use(ContextMiddleware(bookRepository))
 
@@ -83,4 +85,18 @@ func configureTrustedProxies(engine *gin.Engine) error {
 		}
 	}
 	return engine.SetTrustedProxies(list)
+}
+
+// maxRequestBodyBytesFromEnv returns REQUEST_MAX_BODY_BYTES or the middleware
+// default (1 MiB). Invalid or non-positive values panic at process startup.
+func maxRequestBodyBytesFromEnv() int64 {
+	s := strings.TrimSpace(os.Getenv("REQUEST_MAX_BODY_BYTES"))
+	if s == "" {
+		return middleware.DefaultMaxRequestBodyBytes
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || n <= 0 {
+		panic("api: REQUEST_MAX_BODY_BYTES must be a positive integer (bytes): " + s)
+	}
+	return n
 }
