@@ -11,8 +11,6 @@ import (
 	"os"
 
 	"go.uber.org/zap"
-
-	"github.com/gin-gonic/gin"
 )
 
 // @title           Swagger Example API
@@ -59,8 +57,9 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	//gin.SetMode(gin.ReleaseMode)
-	gin.SetMode(gin.DebugMode)
+	// Gin mode comes from GIN_MODE (debug | release | test); see gin.EnvGinMode.
+	// Gin's init already applied os.Getenv("GIN_MODE"); do not override here.
+	// Use GIN_MODE=release in production so Security/XSS middleware run (pkg/api/router.go).
 
 	r := api.NewRouter(logger, mongo, dbWrapper, redisClient, &ctx)
 

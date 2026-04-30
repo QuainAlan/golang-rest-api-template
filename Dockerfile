@@ -24,6 +24,9 @@ RUN useradd --system --no-create-home --uid 10001 appuser
 
 COPY --from=builder /out/server /app/server
 
+# Default container image to Gin release mode (Security/XSS middleware in router).
+ENV GIN_MODE=release
+
 USER appuser
 
 EXPOSE 8080
