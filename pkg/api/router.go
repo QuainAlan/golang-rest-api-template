@@ -2,10 +2,13 @@ package api
 
 import (
 	"context"
+	"os"
+	"strings"
+	"time"
+
 	"golang-rest-api-template/pkg/cache"
 	"golang-rest-api-template/pkg/database"
 	"golang-rest-api-template/pkg/middleware"
-	"time"
 
 	docs "golang-rest-api-template/docs"
 
@@ -30,6 +33,9 @@ func NewRouter(logger *zap.Logger, mongoCollection *mongo.Collection, db databas
 	userRepository := NewUserRepository(db, ctx)
 
 	r := gin.Default()
+	if err := configureTrustedProxies(r); err != nil {
+		panic("api: trusted proxies: " + err.Error())
+	}
 	r.Use(middleware.RequestID())
 	r.Use(ContextMiddleware(bookRepository))
 
@@ -58,4 +64,23 @@ func NewRouter(logger *zap.Logger, mongoCollection *mongo.Collection, db databas
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	return r
+}
+
+// configureTrustedProxies sets which upstreams may influence ClientIP via
+// X-Forwarded-For and related headers. If GIN_TRUSTED_PROXIES is unset or
+// blank, no proxies are trusted (equivalent to SetTrustedProxies(nil)), so
+// ClientIP reflects the direct TCP peer only. Otherwise the value is a
+// comma-separated list of IPs or CIDRs accepted by gin.Engine.SetTrustedProxies.
+func configureTrustedProxies(engine *gin.Engine) error {
+	raw := strings.TrimSpace(os.Getenv("GIN_TRUSTED_PROXIES"))
+	if raw == "" {
+		return engine.SetTrustedProxies(nil)
+	}
+	var list []string
+	for _, p := range strings.Split(raw, ",") {
+		if s := strings.TrimSpace(p); s != "" {
+			list = append(list, s)
+		}
+	}
+	return engine.SetTrustedProxies(list)
 }
