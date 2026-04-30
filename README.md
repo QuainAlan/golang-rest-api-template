@@ -93,13 +93,15 @@ git clone https://github.com/araujo88/golang-rest-api-template
 cd golang-rest-api-template
 ```
 
-3. Build and run the Docker containers
+3. Copy [`.env.example`](./.env.example) to `.env` and set secrets (at least `JWT_SECRET_KEY` and `API_SECRET_KEY`, each **32 bytes or longer**; use `go run ./scripts/generate_key.go` twice). Docker Compose reads this file for `${JWT_SECRET_KEY}` and `${API_SECRET_KEY}` interpolation.
+
+4. Build and run the Docker containers
 
 ```bash
 make up
 ```
 
-Please refer to the [Makefile](./Makefile) if you need to build in the local environment.
+Please refer to the [Makefile](./Makefile) if you need to build in the local environment. The `run-local` target also requires a populated `.env` for those two variables.
 
 ### Environment Variables
 
@@ -124,7 +126,7 @@ To generate URL-safe random values for `JWT_SECRET_KEY` and `API_SECRET_KEY`, ru
 go run ./scripts/generate_key.go
 ```
 
-`docker-compose.yml` and the `run-local` target in the [Makefile](./Makefile) ship **demo-only** credentials so the stack starts quickly. Replace them with generated secrets for anything beyond local experimentation.
+`docker-compose.yml` does **not** embed JWT or API secrets; they must come from `.env` or your shell environment so keys are not committed to the repository.
 
 ### API Documentation
 
@@ -194,42 +196,27 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 #### 2. Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -r tests/requirements.txt
 ```
-
-The main dependency is `requests`, but you may need to include it in your `requirements.txt` file if it's not already listed.
 
 #### 3. Set up the environment variables:
 
-You need to set the `BASE_URL` and `API_KEY` as environment variables before running the tests.
+E2E tests require `API_SECRET_KEY` (same value the API expects in `X-API-Key`). Optionally set `BASE_URL` (defaults to `http://127.0.0.1:8001/api/v1`).
 
-For a **local** API service:
-
-```bash
-export BASE_URL=http://localhost:8001/api/v1
-export API_KEY=your-api-key-here
-```
-
-For a **staging** server:
+With a project-root `.env` (as used by Docker Compose), load it before pytest:
 
 ```bash
-export BASE_URL=https://staging-server-url.com/api/v1
-export API_KEY=your-api-key-here
+set -a && . ./.env && set +a
+export BASE_URL=http://127.0.0.1:8001/api/v1   # optional override
+pytest -v tests/e2e.py
 ```
 
-On **Windows**, you can use:
-
-```bash
-set BASE_URL=http://localhost:8001/api/v1
-set API_KEY=your-api-key-here
-```
+For a **staging** server, export the same variables with your deployment values.
 
 #### 4. Run the tests:
 
-Once the environment variables are set, you can run the tests using `pytest`:
-
 ```bash
-pytest test_e2e.py
+pytest -v tests/e2e.py
 ```
 
 ### Test Structure

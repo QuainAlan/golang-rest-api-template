@@ -8,19 +8,17 @@ setup:
 build-docker:
 	docker compose build --no-cache
 
+# Run API against local Docker DBs. Requires `.env` with JWT_SECRET_KEY and API_SECRET_KEY (see .env.example).
 run-local:
 	docker start dockerPostgres
 	docker start dockerRedis
 	docker start dockerMongo
-	export REDIS_HOST=localhost \
-	&& export POSTGRES_DB=go_app_dev \
-	&& export POSTGRES_USER=docker \
-	&& export POSTGRES_PASSWORD=password \
-	&& export POSTGRES_PORT=5435 \
-	&& export JWT_SECRET_KEY=ObL89O3nOSSEj6tbdHako0cXtPErzBUfq8l8o/3KD9g=INSECURE \
-	&& export API_SECRET_KEY=cJGZ8L1sDcPezjOy1zacPJZxzZxrPObm2Ggs1U0V+fE=INSECURE \
-	&& export POSTGRES_HOST=localhost \
-	&& go run cmd/server/main.go
+	test -f .env || { echo >&2 "Missing .env — copy .env.example to .env and set secrets (>=32 bytes each)."; exit 1; }
+	set -euo pipefail; \
+	set -a && . ./.env && set +a; \
+	export REDIS_HOST=localhost POSTGRES_HOST=localhost \
+		POSTGRES_DB=go_app_dev POSTGRES_USER=docker POSTGRES_PASSWORD=password POSTGRES_PORT=5435; \
+	go run cmd/server/main.go
 
 up:
 	docker compose up
