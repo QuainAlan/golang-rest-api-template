@@ -2,6 +2,7 @@ package auth
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
@@ -29,9 +30,7 @@ func TestGenerateTokenRoundTripUsernameClaim(t *testing.T) {
 	}
 
 	parsed := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenStr, parsed, func(token *jwt.Token) (interface{}, error) {
-		return JwtKey, nil
-	})
+	token, err := jwt.ParseWithClaims(tokenStr, parsed, JWTKeyFunc(JwtKey))
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -45,4 +44,61 @@ func TestGenerateRandomKey(t *testing.T) {
 	randomKey := GenerateRandomKey()
 	assert.NotEmpty(t, randomKey)
 	assert.Len(t, randomKey, 44)
+}
+
+func TestJWTKeyFuncRejectsNonHS256Algorithms(t *testing.T) {
+	key := []byte("jwt-keyfunc-test-secret-32bytes!!")
+	exp := time.Now().Add(time.Hour).Unix()
+	baseClaims := Claims{
+		Username: "attacker",
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: exp,
+		},
+	}
+
+	t.Run("HS512", func(t *testing.T) {
+		tok := jwt.NewWithClaims(jwt.SigningMethodHS512, &baseClaims)
+		s, err := tok.SignedString(key)
+		if !assert.NoError(t, err) {
+			return
+		}
+		parsed := &Claims{}
+		_, err = jwt.ParseWithClaims(s, parsed, JWTKeyFunc(key))
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected signing method")
+	})
+
+	t.Run("none", func(t *testing.T) {
+		tok := jwt.NewWithClaims(jwt.SigningMethodNone, &baseClaims)
+		s, err := tok.SignedString(jwt.UnsafeAllowNoneSignatureType)
+		if !assert.NoError(t, err) {
+			return
+		}
+		parsed := &Claims{}
+		_, err = jwt.ParseWithClaims(s, parsed, JWTKeyFunc(key))
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected signing method")
+	})
+}
+
+func TestJWTKeyFuncAcceptsHS256(t *testing.T) {
+	key := []byte("jwt-keyfunc-hs256-accept-secret!")
+	claims := &Claims{
+		Username: "legit",
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+		},
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	s, err := tok.SignedString(key)
+	if !assert.NoError(t, err) {
+		return
+	}
+	parsed := &Claims{}
+	token, err := jwt.ParseWithClaims(s, parsed, JWTKeyFunc(key))
+	if !assert.NoError(t, err) {
+		return
+	}
+	assert.True(t, token.Valid)
+	assert.Equal(t, "legit", parsed.Username)
 }
