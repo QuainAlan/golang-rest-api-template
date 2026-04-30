@@ -119,6 +119,7 @@ Names below match `os.Getenv` usage in this repository:
 | `REDIS_HOST` | Redis hostname (the app appends `:6379`; see `pkg/cache/cache.go`) |
 | `JWT_SECRET_KEY` | Secret for signing JWTs (`pkg/auth/auth.go`) |
 | `API_SECRET_KEY` | Secret compared to the `X-API-Key` header (`pkg/middleware/api_key.go`) |
+| `GIN_TRUSTED_PROXIES` | Optional comma-separated CIDRs trusted for `X-Forwarded-For` / `ClientIP` (`pkg/api/router.go`). If unset, only the direct peer address is used. |
 
 To generate URL-safe random values for `JWT_SECRET_KEY` and `API_SECRET_KEY`, run:
 
